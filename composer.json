@@ -1,0 +1,24 @@
+{
+    "name": "eaitfakir/eloquent-searchable",
+    "description": "full text search for eloquent",
+    "keywords": [
+        "laravel",
+        "eloquent",
+        "search",
+        "searchable",
+        "package"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "EL MEHDI AIT FAKIR",
+            "email": "aitfakirelmehdi@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Eaitfakir\\EloquentSearchable\\": "src/"
+        }
+    }
+}
