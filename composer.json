@@ -1,6 +1,6 @@
 {
     "name": "eaitfakir/eloquent-searchable",
-    "description": "full text search for eloquent",
+    "description": "Laravel Eloquent Searchable is a lightweight package that provides dynamic and flexible search functionality for your Eloquent models. Simply define searchable fields and perform quick searches across your data.",
     "keywords": [
         "laravel",
         "eloquent",
