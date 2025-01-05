@@ -40,7 +40,7 @@ Example:
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use YourVendor\EloquentSearchable\Traits\Searchable;
+use Eaitfakir\EloquentSearchable\Traits\Searchable;
 
 class User extends Model
 {
