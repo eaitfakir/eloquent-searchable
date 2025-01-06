@@ -60,7 +60,13 @@ $users = User::search('John')->get();
 
 This will search for the term `'John'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
 
----
+or you can use the `searchExact` scope to search for an exact term:
+
+```php
+$users = User::searchExact('John')->get();
+```
+
+This will search for the exact term `'John'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
 
 [//]: # (## Advanced Configuration)
 
