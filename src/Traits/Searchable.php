@@ -13,7 +13,7 @@ trait Searchable
      * @param  string  $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearch($query, $term): Builder
+    public function scopeSearch($query, string $term): Builder
     {
         return $query->where(function (Builder $query) use ($term) {
             foreach ($this->getSearchableFields() as $field) {
@@ -32,11 +32,34 @@ trait Searchable
      * @param  string  $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchExact($query, $term): Builder
+    public function scopeSearchExact($query, string $term): Builder
     {
         return $query->where(function (Builder $query) use ($term) {
             foreach ($this->getSearchableFields() as $field) {
                 $query->orWhere($field, $term);
+            }
+        });
+    }
+
+    /**
+     * Scope a query that searches for multiple keywords in the searchable fields.
+     *
+     * This method splits the search term into individual keywords and performs
+     * a search for each keyword using the LIKE operator across the defined
+     * searchable fields.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $term
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSearchByKeywords($query, string $term)
+    {
+        $keywords = explode(' ', $term);
+        return $query->where(function (Builder $query) use ($keywords) {
+            foreach ($this->getSearchableFields() as $field) {
+                foreach ($keywords as $keyword) {
+                    $query->orWhere($field, 'like', "%{$keyword}%");
+                }
             }
         });
     }
