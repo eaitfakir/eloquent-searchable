@@ -76,6 +76,14 @@ $users = User::searchByKeywords('John Doe')->get();
 
 This will search for the keywords `'John'` and `'Doe'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
 
+To perform a case-insensitive search, you can use the `searchByKeywords` or `search` scope with the `$insensitive` parameter set to `true`:
+
+```php
+$users = User::searchByKeywords('John Doe', true)->get();
+```
+
+This will perform a case-insensitive search for the keywords `'John'` and `'Doe'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+
 [//]: # (## Advanced Configuration)
 
 [//]: # (If you want to define default searchable fields globally, you can publish the package's configuration file:)

@@ -13,11 +13,12 @@ trait Searchable
      * @param  string  $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearch($query, string $term): Builder
+    public function scopeSearch($query, string $term, bool $insensitive = false): Builder
     {
-        return $query->where(function (Builder $query) use ($term) {
+        return $query->where(function (Builder $query) use ($insensitive, $term) {
             foreach ($this->getSearchableFields() as $field) {
-                $query->orWhere($field, 'like', "%{$term}%");
+                $operator = $insensitive ? 'ilike' : 'like';
+                $query->orWhere($field, $operator, "%{$term}%");
             }
         });
     }
@@ -52,13 +53,14 @@ trait Searchable
      * @param  string  $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchByKeywords($query, string $term)
+    public function scopeSearchByKeywords($query, string $term, bool $insensitive = false): Builder
     {
         $keywords = explode(' ', $term);
-        return $query->where(function (Builder $query) use ($keywords) {
+        return $query->where(function (Builder $query) use ($insensitive, $keywords) {
             foreach ($this->getSearchableFields() as $field) {
                 foreach ($keywords as $keyword) {
-                    $query->orWhere($field, 'like', "%{$keyword}%");
+                    $operator = $insensitive ? 'ilike' : 'like';
+                    $query->orWhere($field, $operator, "%{$keyword}%");
                 }
             }
         });
