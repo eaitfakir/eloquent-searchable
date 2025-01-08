@@ -67,6 +67,44 @@ trait Searchable
     }
 
     /**
+     * Scope a query that searches for a term in the searchable fields and
+     * the relations provided.
+     *
+     * This method is similar to the `search` scope, but it also searches for
+     * the term in the relations provided. The relations and fields should be
+     * provided as an associative array where the key is the relation name and
+     * the value is an array of fields to search.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  string  $term
+     * @param  array  $relations  Associative array of relations and fields to search
+     * @param  bool  $search_by_keywords  Whether to split the search term into keywords,
+     *                                    default is `false`
+     * @param  bool  $insensitive  Whether to perform a case-insensitive search,
+     *                             default is `false`
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeSearchWithRelations($query, string $term, array $relations, bool $search_by_keywords = false, bool $insensitive = false): Builder
+    {
+        if ($search_by_keywords) {
+            $query = $this->scopeSearchByKeywords($query, $term, $insensitive);
+        }else{
+            $query = $this->scopeSearch($query, $term, $insensitive);
+        }
+
+        foreach ($relations as $relation => $fields) {
+            $query->orWhereHas($relation, function (Builder $query) use ($fields, $insensitive, $term) {
+                foreach ($fields as $field) {
+                    $operator = $insensitive ? 'ilike' : 'like';
+                    $query->orWhere($field, $operator, "%{$term}%");
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    /**
      * Retrieve the list of fields that are searchable.
      *
      * @return array The array of searchable field names.
