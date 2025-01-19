@@ -53,7 +53,7 @@ trait Searchable
      * @param  string  $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchByKeywords($query, string $term, bool $insensitive = false): Builder
+    public function scopeSearchByKeywords(Builder $query, string $term, bool $insensitive = false): Builder
     {
         $keywords = explode(' ', $term);
         return $query->where(function (Builder $query) use ($insensitive, $keywords) {
@@ -75,7 +75,7 @@ trait Searchable
      * provided as an associative array where the key is the relation name and
      * the value is an array of fields to search.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param \Illuminate\Database\Eloquent\Builder $query
      * @param  string  $term
      * @param  array  $relations  Associative array of relations and fields to search
      * @param  bool  $search_by_keywords  Whether to split the search term into keywords,
@@ -102,6 +102,27 @@ trait Searchable
         }
 
         return $query;
+    }
+
+    /**
+     * Scope a query that searches for a term in the searchable fields using
+     * the LEVENSHTEIN distance.
+     *
+     * This method uses the Levenshtein distance to measure the number of single-character edits
+     * (i.e. insertions, deletions or substitutions) required to change one word into the other.
+     * The search is case-sensitive.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  string  $term
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeFuzzySearch($query, string $term): Builder
+    {
+        return $query->where(function (Builder $query) use ($term) {
+            foreach ($this->getSearchableFields() as $field) {
+                $query->orWhereRaw("LEVENSHEIN(?, {$field}) < ?", [$term, 3]);
+            }
+        });
     }
 
     /**
