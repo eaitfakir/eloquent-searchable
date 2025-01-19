@@ -96,6 +96,14 @@ $users = User::searchWithRelations('John', ['posts' => ['title', 'content']])->g
 
 This will search for the term `'John'` in the user fields (`name`, `email`, and `address` in this example) and search for the term `'John'` in the `posts` relation (`title` and `content` in this example).
 
+To perform a search for a term in the searchable fields using fuzzy matching, you can use the `fuzzySearch` scope:
+
+```php
+$users = User::fuzzySearch('Johb')->get();
+```
+
+This will perform a fuzzy search for the term `'Johb'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+
 [//]: # (## Advanced Configuration)
 
 [//]: # (If you want to define default searchable fields globally, you can publish the package's configuration file:)
