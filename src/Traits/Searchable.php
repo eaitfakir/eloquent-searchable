@@ -105,21 +105,23 @@ trait Searchable
     }
 
     /**
-     * Scope a query that searches for a term in the searchable fields using
-     * the LEVENSHTEIN distance.
+     * Scope a query that performs a fuzzy search on the specified fields.
      *
-     * This method uses the Levenshtein distance to measure the number of single-character edits
-     * (i.e. insertions, deletions or substitutions) required to change one word into the other.
-     * The search is case-sensitive.
+     * This method uses the Levenshtein distance algorithm to perform a fuzzy search
+     * on the provided fields. If no fields are specified, it defaults to using the
+     * model's searchable fields. The search will include fields where the Levenshtein
+     * distance between the term and the field value is less than 3.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param  string  $term
+     * @param string $term The search term to perform the fuzzy matching on.
+     * @param array $fields The fields to search within, defaults to the model's searchable fields.
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeFuzzySearch($query, string $term): Builder
+    public function scopeFuzzySearch($query, string $term, array $fields): Builder
     {
-        return $query->where(function (Builder $query) use ($term) {
-            foreach ($this->getSearchableFields() as $field) {
+        $fields = $fields ?: $this->getSearchableFields();
+        return $query->where(function (Builder $query) use ($term, $fields) {
+            foreach ($fields as $field) {
                 $query->orWhereRaw("LEVENSHEIN(?, {$field}) < ?", [$term, 3]);
             }
         });
