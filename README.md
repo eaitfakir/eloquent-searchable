@@ -104,6 +104,14 @@ $users = User::fuzzySearch('Johb')->get();
 
 This will perform a fuzzy search for the term `'Johb'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
 
+To perform a search with weighted search on the specified fields, you can use the `weightedSearch` scope:
+
+```php
+$users = User::weightedSearch('John', ['name' => 2, 'email' => 1])->get();
+```
+
+This will perform a weighted search for the term `'John'` in the fields specified in the `$searchable` property (`name` with weight 2 and `email` with weight 1 in this example).
+
 [//]: # (## Advanced Configuration)
 
 [//]: # (If you want to define default searchable fields globally, you can publish the package's configuration file:)
