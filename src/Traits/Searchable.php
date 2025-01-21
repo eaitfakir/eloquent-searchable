@@ -9,8 +9,8 @@ trait Searchable
     /**
      * Scope a query that searches for a term in the searchable fields.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $term
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSearch($query, string $term, bool $insensitive = false): Builder
@@ -29,8 +29,8 @@ trait Searchable
      * This method is similar to the `search` scope, but it does not use LIKE
      * operator. Instead, it searches for an exact value.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $term
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSearchExact($query, string $term): Builder
@@ -49,8 +49,8 @@ trait Searchable
      * a search for each keyword using the LIKE operator across the defined
      * searchable fields.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $term
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $term
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSearchByKeywords(Builder $query, string $term, bool $insensitive = false): Builder
@@ -76,11 +76,11 @@ trait Searchable
      * the value is an array of fields to search.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param  string  $term
-     * @param  array  $relations  Associative array of relations and fields to search
-     * @param  bool  $search_by_keywords  Whether to split the search term into keywords,
+     * @param string $term
+     * @param array $relations Associative array of relations and fields to search
+     * @param bool $search_by_keywords Whether to split the search term into keywords,
      *                                    default is `false`
-     * @param  bool  $insensitive  Whether to perform a case-insensitive search,
+     * @param bool $insensitive Whether to perform a case-insensitive search,
      *                             default is `false`
      * @return \Illuminate\Database\Eloquent\Builder
      */
@@ -88,7 +88,7 @@ trait Searchable
     {
         if ($search_by_keywords) {
             $query = $this->scopeSearchByKeywords($query, $term, $insensitive);
-        }else{
+        } else {
             $query = $this->scopeSearch($query, $term, $insensitive);
         }
 
@@ -123,6 +123,34 @@ trait Searchable
         return $query->where(function (Builder $query) use ($term, $fields) {
             foreach ($fields as $field) {
                 $query->orWhereRaw("LEVENSHEIN(?, {$field}) < ?", [$term, 3]);
+            }
+        });
+    }
+
+    /**
+     * Scope a query that performs a weighted search on the specified fields.
+     *
+     * This method assigns a weight to each field that is searched. The weight is
+     * used to order the results by relevance. The search will include fields where
+     * the value contains the search term.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $term The search term to perform the weighted matching on.
+     * @param array $weights The weights to assign to each field, as an associative array where the key is the field name and the value is the weight.
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWeightedSearch(Builder $query, string $term, array $weights): Builder
+    {
+        $query->select('*');
+
+        foreach ($weights as $field => $weight) {
+            $query->addSelect(\DB::raw("IF(`{$field}` LIKE '%{$term}%', {$weight}, 0) as relevence_{$field}"));
+        }
+        $query->orderByRaw(implode(' + ', array_keys($weights)), 'DESC');
+
+        return $query->where(function (Builder $query) use ($term, $weights) {
+            foreach (array_keys($weights) as $field) {
+                $query->orWhere($field, 'like', "%{$term}%");
             }
         });
     }
