@@ -99,10 +99,16 @@ This will search for the term `'John'` in the user fields (`name`, `email`, and 
 To perform a search for a term in the searchable fields using fuzzy matching, you can use the `fuzzySearch` scope:
 
 ```php
+// Basic fuzzy search using model's $searchable fields
 $users = User::fuzzySearch('Johb')->get();
+
+// Specify custom fields and maximum distance (default maxDistance = 5)
+$users = User::fuzzySearch('Johb', ['name', 'email'], 3)->get();
 ```
 
-This will perform a fuzzy search for the term `'Johb'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+How it works across databases:
+- PostgreSQL: Uses the fuzzystrmatch extension's `levenshtein` function when available (recommended: enable with `CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;`). Falls back to `ILIKE` if not available.
+- MySQL/MariaDB: Falls back to a combination of case-insensitive `LIKE` and `SOUNDEX` for phonetic matching.
 
 To perform a search with weighted search on the specified fields, you can use the `weightedSearch` scope:
 
@@ -110,7 +116,10 @@ To perform a search with weighted search on the specified fields, you can use th
 $users = User::weightedSearch('John', ['name' => 2, 'email' => 1])->get();
 ```
 
-This will perform a weighted search for the term `'John'` in the fields specified in the `$searchable` property (`name` with weight 2 and `email` with weight 1 in this example).
+This will perform a weighted search for the term `'John'` in the fields specified in the `$searchable` property (`name` with weight 2 and `email` with weight 1 in this example). This works on both MySQL and PostgreSQL.
+
+Case-insensitive option:
+- `search($term, $insensitive = false)` and `searchByKeywords($term, $insensitive = false)` support case-insensitive search. On PostgreSQL this uses `ILIKE`; on MySQL it emulates with `LOWER(column) LIKE LOWER(?)`.
 
 [//]: # (## Advanced Configuration)
 

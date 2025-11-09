@@ -15,7 +15,6 @@
             "email": "aitfakirelmehdi@gmail.com"
         }
     ],
-    "require": {},
     "autoload": {
         "psr-4": {
             "Eaitfakir\\EloquentSearchable\\": "src/"
