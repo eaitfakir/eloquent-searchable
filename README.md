@@ -55,46 +55,61 @@ class User extends Model
 You can now perform a search using the `search` scope:
 
 ```php
+// Use model's default $searchable fields
 $users = User::search('John')->get();
+
+// Or specify custom fields for this query only
+$users = User::search('John', insensitive: false, fields: ['name', 'email'])->get();
 ```
 
-This will search for the term `'John'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+This will search for the term `'John'` in the fields specified in the `$searchable` property by default. You can also provide custom fields per-call.
 
 
-You can use the `searchExact` scope to search for an exact term:
+You can use the `exactMatch` scope to search for an exact term:
 
 ```php
-$users = User::searchExact('John')->get();
+// Default: use model's $searchable fields
+$users = User::exactMatch('John')->get();
+
+// Or specify fields explicitly for this call
+$users = User::exactMatch('John', ['name', 'email'])->get();
 ```
 
-This will search for the exact term `'John'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+This will search for the exact term `'John'` in either the model's `$searchable` fields or the provided fields.
 
 
-You can use the `searchByKeywords` scope to search for multiple keywords:
+You can use the `keywordSearch` scope to search for multiple keywords:
 
 ```php
-$users = User::searchByKeywords('John Doe')->get();
+// Defaults to case-sensitive search on MySQL (collation dependent) and uses ILIKE on Postgres when insensitive = true
+$users = User::keywordSearch('John Doe')->get();
+
+// Case-insensitive keyword search and custom fields
+$users = User::keywordSearch('John Doe', insensitive: true, fields: ['name', 'email'])->get();
 ```
 
-This will search for the keywords `'John'` and `'Doe'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
+This will search for the keywords `'John'` and `'Doe'` across the specified fields. Set `insensitive: true` for case-insensitive matching.
 
 
-To perform a case-insensitive search, you can use the `searchByKeywords` or `search` scope with the `$insensitive` parameter set to `true`:
+To perform a search for a term in the relations provided, you can use the `searchAcross` scope:
 
 ```php
-$users = User::searchByKeywords('John Doe', true)->get();
+// Basic: search on model + relations using their specified fields
+$users = User::searchAcross('John', [
+    'posts' => ['title', 'content'],
+])->get();
+
+// Advanced: enable keyword mode, case-insensitive, and override base model fields
+$users = User::searchAcross(
+    term: 'John Doe',
+    relations: ['posts' => ['title', 'content']],
+    search_by_keywords: true,
+    insensitive: true,
+    fields: ['name', 'email']
+)->get();
 ```
 
-This will perform a case-insensitive search for the keywords `'John'` and `'Doe'` in the fields specified in the `$searchable` property (`name`, `email`, and `address` in this example).
-
-
-To perform a search for a term in the relations provided, you can use the `searchWithRelations` scope:
-
-```php
-$users = User::searchWithRelations('John', ['posts' => ['title', 'content']])->get();
-```
-
-This will search for the term `'John'` in the user fields (`name`, `email`, and `address` in this example) and search for the term `'John'` in the `posts` relation (`title` and `content` in this example).
+This searches for the term in the model's fields and within the provided relations. When `search_by_keywords` is true, the term is split into keywords; `insensitive: true` enables case-insensitive matching. You can also override the base model fields using the `fields` parameter.
 
 To perform a search for a term in the searchable fields using fuzzy matching, you can use the `fuzzySearch` scope:
 
@@ -110,16 +125,16 @@ How it works across databases:
 - PostgreSQL: Uses the fuzzystrmatch extension's `levenshtein` function when available (recommended: enable with `CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;`). Falls back to `ILIKE` if not available.
 - MySQL/MariaDB: Falls back to a combination of case-insensitive `LIKE` and `SOUNDEX` for phonetic matching.
 
-To perform a search with weighted search on the specified fields, you can use the `weightedSearch` scope:
+To perform a relevance-ranked search on specified fields, you can use the `rankedSearch` scope:
 
 ```php
-$users = User::weightedSearch('John', ['name' => 2, 'email' => 1])->get();
+$users = User::rankedSearch('John', ['name' => 2, 'email' => 1])->get();
 ```
 
-This will perform a weighted search for the term `'John'` in the fields specified in the `$searchable` property (`name` with weight 2 and `email` with weight 1 in this example). This works on both MySQL and PostgreSQL.
+This will perform a weighted search for the term `'John'` in the fields specified (`name` with weight 2 and `email` with weight 1 in this example) and sort results by a computed relevance score. This works on both MySQL and PostgreSQL.
 
 Case-insensitive option:
-- `search($term, $insensitive = false)` and `searchByKeywords($term, $insensitive = false)` support case-insensitive search. On PostgreSQL this uses `ILIKE`; on MySQL it emulates with `LOWER(column) LIKE LOWER(?)`.
+- `search($term, $insensitive = false)` and `keywordSearch($term, $insensitive = false)` support case-insensitive search. On PostgreSQL this uses `ILIKE`; on MySQL it emulates with `LOWER(column) LIKE LOWER(?)`.
 
 [//]: # (## Advanced Configuration)
 

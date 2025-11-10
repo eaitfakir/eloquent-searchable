@@ -15,11 +15,12 @@ trait Searchable
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $term
      * @param bool $insensitive Whether to perform case-insensitive search
+     * @param array $fields Optional fields to search; defaults to the model's $searchable.
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearch($query, string $term, bool $insensitive = false): Builder
+    public function scopeSearch(Builder $query, string $term, bool $insensitive = false, array $fields = []): Builder
     {
-        $fields = $this->getSearchableFields();
+        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
         return $query->where(function (Builder $q) use ($fields, $insensitive, $term) {
             foreach ($fields as $field) {
                 $this->applyLikeCondition($q, $field, $term, $insensitive, 'or');
@@ -35,12 +36,14 @@ trait Searchable
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $term
+     * @param array $fields Optional fields to search; defaults to the model's $searchable.
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchExact($query, string $term): Builder
+    public function scopeExactMatch(Builder $query, string $term, array $fields = []): Builder
     {
-        return $query->where(function (Builder $q) use ($term) {
-            foreach ($this->getSearchableFields() as $field) {
+        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        return $query->where(function (Builder $q) use ($term, $fields) {
+            foreach ($fields as $field) {
                 $q->orWhere($field, $term);
             }
         });
@@ -56,12 +59,13 @@ trait Searchable
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @param string $term
      * @param bool $insensitive Whether to perform case-insensitive search
+     * @param array $fields Optional fields to search; defaults to the model's $searchable.
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchByKeywords(Builder $query, string $term, bool $insensitive = false): Builder
+    public function scopeKeywordSearch(Builder $query, string $term, bool $insensitive = false, array $fields = []): Builder
     {
         $keywords = array_values(array_filter(explode(' ', $term), fn ($w) => $w !== ''));
-        $fields = $this->getSearchableFields();
+        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
         return $query->where(function (Builder $q) use ($insensitive, $keywords, $fields) {
             foreach ($fields as $field) {
                 foreach ($keywords as $keyword) {
@@ -89,17 +93,20 @@ trait Searchable
      *                             default is `false`
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeSearchWithRelations($query, string $term, array $relations, bool $search_by_keywords = false, bool $insensitive = false): Builder
+    public function scopeSearchAcross(Builder $query, string $term, array $relations, bool $search_by_keywords = false, bool $insensitive = false, array $fields = []): Builder
     {
+        // Determine base fields for the main model search
+        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+
         if ($search_by_keywords) {
-            $query = $this->scopeSearchByKeywords($query, $term, $insensitive);
+            $query = $this->scopeKeywordSearch($query, $term, $insensitive, $fields);
         } else {
-            $query = $this->scopeSearch($query, $term, $insensitive);
+            $query = $this->scopeSearch($query, $term, $insensitive, $fields);
         }
 
-        foreach ($relations as $relation => $fields) {
-            $query->orWhereHas($relation, function (Builder $q) use ($fields, $insensitive, $term) {
-                foreach ($fields as $field) {
+        foreach ($relations as $relation => $relationFields) {
+            $query->orWhereHas($relation, function (Builder $q) use ($relationFields, $insensitive, $term) {
+                foreach ($relationFields as $field) {
                     $this->applyLikeCondition($q, $field, $term, $insensitive, 'or');
                 }
             });
@@ -161,7 +168,7 @@ trait Searchable
      * @param array $weights The weights to assign to each field, as an associative array where the key is the field name and the value is the weight.
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeWeightedSearch(Builder $query, string $term, array $weights): Builder
+    public function scopeRankedSearch(Builder $query, string $term, array $weights): Builder
     {
         $query->select('*');
 
