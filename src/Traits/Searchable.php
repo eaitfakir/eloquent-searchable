@@ -20,7 +20,7 @@ trait Searchable
      */
     public function scopeSearch(Builder $query, string $term, bool $insensitive = false, array $fields = []): Builder
     {
-        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        $fields = $this->resolveSearchFields($fields);
         return $query->where(function (Builder $q) use ($fields, $insensitive, $term) {
             foreach ($fields as $field) {
                 $this->applyLikeCondition($q, $field, $term, $insensitive, 'or');
@@ -41,7 +41,7 @@ trait Searchable
      */
     public function scopeExactMatch(Builder $query, string $term, array $fields = []): Builder
     {
-        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        $fields = $this->resolveSearchFields($fields);
         return $query->where(function (Builder $q) use ($term, $fields) {
             foreach ($fields as $field) {
                 $q->orWhere($field, $term);
@@ -65,7 +65,7 @@ trait Searchable
     public function scopeKeywordSearch(Builder $query, string $term, bool $insensitive = false, array $fields = []): Builder
     {
         $keywords = array_values(array_filter(explode(' ', $term), fn ($w) => $w !== ''));
-        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        $fields = $this->resolveSearchFields($fields);
         return $query->where(function (Builder $q) use ($insensitive, $keywords, $fields) {
             foreach ($fields as $field) {
                 foreach ($keywords as $keyword) {
@@ -96,7 +96,7 @@ trait Searchable
     public function scopeSearchAcross(Builder $query, string $term, array $relations, bool $search_by_keywords = false, bool $insensitive = false, array $fields = []): Builder
     {
         // Determine base fields for the main model search
-        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        $fields = $this->resolveSearchFields($fields);
 
         if ($search_by_keywords) {
             $query = $this->scopeKeywordSearch($query, $term, $insensitive, $fields);
@@ -132,7 +132,7 @@ trait Searchable
      */
     public function scopeFuzzySearch(Builder $query, string $term, array $fields = [], int $maxDistance = 5): Builder
     {
-        $fields = empty($fields) ? $this->getSearchableFields() : $fields;
+        $fields = $this->resolveSearchFields($fields);
         $driver = $this->getDatabaseDriver();
         $lowerTerm = mb_strtolower($term);
 
@@ -170,6 +170,9 @@ trait Searchable
      */
     public function scopeRankedSearch(Builder $query, string $term, array $weights): Builder
     {
+        // Ensure weights are provided
+        $weights = $this->resolveWeights($weights);
+
         $query->select('*');
 
         $insensitive = true; // Weighted search is typically case-insensitive
@@ -219,6 +222,49 @@ trait Searchable
     protected function getSearchableFields(): array
     {
         return property_exists($this, 'searchable') ? $this->searchable : [];
+    }
+
+    /**
+     * Resolve search fields from parameter or model property and ensure not empty.
+     *
+     * Rules:
+     * - If $fields is provided (non-empty), use it.
+     * - Otherwise, use the model's $searchable property via getSearchableFields().
+     * - If the resolved list is empty, throw an InvalidArgumentException instructing user
+     *   to either define $searchable on the model or pass a non-empty fields array.
+     *
+     * @param array $fields
+     * @return array
+     */
+    protected function resolveSearchFields(array $fields = []): array
+    {
+        $resolved = empty($fields) ? $this->getSearchableFields() : $fields;
+
+        if (empty($resolved)) {
+            throw new \InvalidArgumentException(
+                'No searchable fields provided. Define a non-empty $searchable property on the model '
+                . 'or pass a non-empty fields array to the scope.'
+            );
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Resolve and validate weights for rankedSearch.
+     *
+     * @param array $weights Associative array of field => weight
+     * @return array The same array if non-empty
+     * @throws \InvalidArgumentException when empty
+     */
+    protected function resolveWeights(array $weights): array
+    {
+        if (empty($weights)) {
+            throw new \InvalidArgumentException(
+                'No weights provided for rankedSearch. Pass a non-empty associative array of field => weight.'
+            );
+        }
+        return $weights;
     }
 
     /**
