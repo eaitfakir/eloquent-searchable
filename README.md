@@ -27,6 +27,19 @@ composer require eaitfakir/eloquent-searchable
 
 ## Usage
 
+### Important: Fields resolution and validation
+All scopes that rely on fields will resolve the list of fields as follows:
+- If you pass a non-empty `fields` array, it will be used.
+- Otherwise, the model's `$searchable` property will be used.
+
+If the resolved list is empty (no `fields` passed AND `$searchable` is not defined or empty), an `InvalidArgumentException` will be thrown with a helpful message:
+
+> No searchable fields provided. Define a non-empty $searchable property on the model or pass a non-empty fields array to the scope.
+
+This applies to: `search`, `exactMatch`, `keywordSearch`, `searchAcross` (for the base model fields), and `fuzzySearch`.
+
+Additionally, `rankedSearch` validates that the `$weights` map is non-empty and will throw an `InvalidArgumentException` if it is empty.
+
 ### Adding Searchable Fields
 
 1. Include the `Searchable` trait in your model.
